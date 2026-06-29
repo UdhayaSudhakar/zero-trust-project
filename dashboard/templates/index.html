@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Zero Trust</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #0a0a1a; color: white; }
+        .header { background: #1a1a2e; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #00d4ff33; }
+        .header h1 { color: #00d4ff; font-size: 20px; }
+        .header-right { display: flex; align-items: center; gap: 20px; }
+        .username { color: #00d4ff; font-weight: bold; }
+        .logout-btn { padding: 8px 16px; background: #ff444433; color: #ff4444; border: 1px solid #ff4444; border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 13px; }
+        .container { max-width: 1000px; margin: 30px auto; padding: 20px; }
+        .info-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 30px; }
+        .info-card { background: #1a1a2e; border-radius: 10px; padding: 15px; text-align: center; border: 1px solid #00d4ff22; }
+        .info-card span { color: #00d4ff; font-size: 11px; display: block; margin-bottom: 5px; }
+        .info-card p { color: white; font-size: 13px; font-weight: bold; }
+        .section-title { color: #00d4ff; font-size: 18px; margin-bottom: 15px; }
+        .form-card { background: #1a1a2e; border-radius: 10px; padding: 30px; margin-bottom: 30px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #00d4ff; font-size: 13px; }
+        .form-group input { width: 100%; padding: 10px; background: #0a0a1a; border: 1px solid #00d4ff55; border-radius: 5px; color: white; font-size: 14px; }
+        .btn { width: 100%; padding: 14px; background: #00d4ff; color: #0a0a1a; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        .result-card { background: #1a1a2e; border-radius: 10px; padding: 30px; display: none; text-align: center; margin-bottom: 30px; }
+        .risk-badge { font-size: 42px; font-weight: bold; margin: 15px 0; }
+        .trust-score { font-size: 32px; margin: 10px 0; }
+        .action-text { font-size: 22px; font-weight: bold; padding: 12px; border-radius: 8px; margin-top: 12px; }
+        .sessions-card { background: #1a1a2e; border-radius: 10px; padding: 25px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { color: #00d4ff; padding: 10px; text-align: left; border-bottom: 1px solid #00d4ff33; }
+        td { padding: 10px; border-bottom: 1px solid #ffffff11; }
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+        .badge-high { background: #ff444433; color: #ff4444; }
+        .badge-medium { background: #ff880033; color: #ff8800; }
+        .badge-low { background: #00ff8833; color: #00ff88; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛡️ Zero Trust Intelligent Session Risk Analysis</h1>
+        <div class="header-right">
+            <span class="username">👤 {{ user.username }}</span>
+            <a href="/logout" class="logout-btn">🚪 Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="info-bar">
+            <div class="info-card">
+                <span>👤 User</span>
+                <p>{{ user.username }}</p>
+            </div>
+            <div class="info-card">
+                <span>💻 Device</span>
+                <p id="device-info">Detecting...</p>
+            </div>
+            <div class="info-card">
+                <span>🌐 Browser</span>
+                <p id="browser-info">Detecting...</p>
+            </div>
+            <div class="info-card">
+                <span>🖥️ OS</span>
+                <p id="os-info">Detecting...</p>
+            </div>
+            <div class="info-card">
+                <span>🕐 Login Time</span>
+                <p id="login-time">{{ sessions[0].login_time.strftime('%H:%M') if sessions else 'N/A' }}</p>
+            </div>
+        </div>
+
+        <div class="form-card">
+            <h2 class="section-title">🔍 Manual Session Analysis</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Login Frequency</label>
+                    <input type="number" id="login_frequency" value="5">
+                </div>
+                <div class="form-group">
+                    <label>Session Duration (mins)</label>
+                    <input type="number" id="session_duration" value="30">
+                </div>
+                <div class="form-group">
+                    <label>IP Changes</label>
+                    <input type="number" id="ip_changes" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Pages Visited</label>
+                    <input type="number" id="pages_visited" value="10">
+                </div>
+                <div class="form-group">
+                    <label>Failed Attempts</label>
+                    <input type="number" id="failed_attempts" value="0">
+                </div>
+                <div class="form-group">
+                    <label>New Device (0/1)</label>
+                    <input type="number" id="new_device" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Odd Hours (0/1)</label>
+                    <input type="number" id="odd_hours" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Data Accessed (MB)</label>
+                    <input type="number" id="data_accessed_mb" value="50">
+                </div>
+            </div>
+            <button class="btn" onclick="analyze()">⚡ Analyze Session Risk</button>
+        </div>
+
+        <div class="result-card" id="result">
+            <h2 style="color:#00d4ff;">Analysis Result</h2>
+            <div class="risk-badge" id="risk_level"></div>
+            <div class="trust-score" id="trust_score"></div>
+            <div class="action-text" id="action"></div>
+        </div>
+
+        <div class="sessions-card">
+            <h2 class="section-title">📋 Recent Session History</h2>
+            <table>
+                <tr>
+                    <th>Time</th>
+                    <th>IP Address</th>
+                    <th>Device</th>
+                    <th>Browser</th>
+                    <th>Location</th>
+                    <th>Risk</th>
+                    <th>Trust Score</th>
+                    <th>Action</th>
+                </tr>
+                {% for session in sessions %}
+                <tr>
+                    <td>{{ session.login_time.strftime('%d/%m %H:%M') }}</td>
+                    <td>{{ session.ip_address }}</td>
+                    <td>{{ session.device }}</td>
+                    <td>{{ session.browser }}</td>
+                    <td>{{ session.city }}, {{ session.country }}</td>
+                    <td>
+                        <span class="badge badge-{{ session.risk_level.lower() }}">
+                            {{ session.risk_level }}
+                        </span>
+                    </td>
+                    <td>{{ session.trust_score }}/100</td>
+                    <td>{{ session.action }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Auto detect device info
+        const ua = navigator.userAgent;
+        document.getElementById('browser-info').textContent = 
+            ua.includes('Safari') && !ua.includes('Chrome') ? 'Safari' :
+            ua.includes('Chrome') ? 'Chrome' :
+            ua.includes('Firefox') ? 'Firefox' : 'Unknown';
+        document.getElementById('os-info').textContent = 
+            ua.includes('Mac') ? 'Mac OS X' :
+            ua.includes('Windows') ? 'Windows' :
+            ua.includes('Linux') ? 'Linux' : 'Unknown';
+        document.getElementById('device-info').textContent = 
+            /Mobile|Android|iPhone/.test(ua) ? 'Mobile' : 'Desktop';
+
+        async function analyze() {
+            const data = {
+                login_frequency: parseFloat(document.getElementById('login_frequency').value),
+                session_duration: parseFloat(document.getElementById('session_duration').value),
+                ip_changes: parseFloat(document.getElementById('ip_changes').value),
+                pages_visited: parseFloat(document.getElementById('pages_visited').value),
+                failed_attempts: parseFloat(document.getElementById('failed_attempts').value),
+                new_device: parseFloat(document.getElementById('new_device').value),
+                odd_hours: parseFloat(document.getElementById('odd_hours').value),
+                data_accessed_mb: parseFloat(document.getElementById('data_accessed_mb').value)
+            };
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('risk_level').innerHTML = '⚠️ Risk: ' + result.risk_level;
+            document.getElementById('risk_level').style.color = result.color;
+            document.getElementById('trust_score').innerHTML = '🔐 Trust Score: ' + result.trust_score + '/100';
+            document.getElementById('action').innerHTML = result.action;
+            document.getElementById('action').style.background = result.color;
+            document.getElementById('result').scrollIntoView({behavior: 'smooth'});
+        }
+    </script>
+</body>
+</html>
